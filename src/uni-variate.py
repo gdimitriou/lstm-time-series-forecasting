@@ -11,6 +11,7 @@ mpl.rcParams['figure.figsize'] = (8, 6)
 mpl.rcParams['axes.grid'] = False
 
 # load the data
+# IMPORTANT: THE FILE household_power_consumption.csv MUST BE IMPORTED MANUALLY (go the README...)
 csv_directory = "../household_power_consumption.csv";
 dataset = read_csv(csv_directory)
 
@@ -117,6 +118,7 @@ def show_plot(plot_data, delta, title):
 sample_plot = show_plot([x_train_uni[0], y_train_uni[0]], 0, 'Sample Example')
 sample_plot.show()
 
+
 # Baseline Prediction
 def baseline(history):
     return np.mean(history)
@@ -175,3 +177,4 @@ plt.plot(epochs_range, val_loss, label='Validation Loss')
 plt.legend(loc='upper right')
 plt.title('Training and Validation Loss')
 plt.show()
+
