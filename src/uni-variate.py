@@ -129,15 +129,15 @@ baseline_plot.show()
 
 # Recurrent Neural Network - LSTM
 
-BATCH_SIZE = 5000
-BUFFER_SIZE = 100000
+batch_size = 5000
+buffer_size = 100000
 
 # Shuffle, batch, and cache the dataset
 train_univariate = tf.data.Dataset.from_tensor_slices((x_train_uni, y_train_uni))
-train_univariate = train_univariate.take(BATCH_SIZE).shuffle(BUFFER_SIZE).batch(BATCH_SIZE).cache().repeat()
+train_univariate = train_univariate.take(batch_size).shuffle(buffer_size).batch(batch_size).cache().repeat()
 
 val_univariate = tf.data.Dataset.from_tensor_slices((x_val_uni, y_val_uni))
-val_univariate = val_univariate.take(BATCH_SIZE).batch(BATCH_SIZE).cache().repeat()
+val_univariate = val_univariate.take(batch_size).batch(batch_size).cache().repeat()
 
 # Create the LSTM model
 lstm_model = tf.keras.models.Sequential([

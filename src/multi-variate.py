@@ -15,6 +15,7 @@ mpl.rcParams['axes.grid'] = False
 csv_directory = "../household_power_consumption.csv";
 df = read_csv(csv_directory)
 
+# Extract the three variables
 features_considered = ['Global_active_power', 'Global_reactive_power', 'Sub_metering_2']
 features = df[features_considered]
 features.index = df['datetime']
@@ -23,6 +24,7 @@ print(features.head())
 
 train_split = 1500000
 
+# Normilice the data
 dataset = features.values
 tf.keras.utils.normalize(dataset)
 
@@ -54,6 +56,8 @@ def show_plot(plot_data, delta, title):
 
 
 # Single step model
+# In a single step setup, the model learns to predict a single point in
+# the future based on some history provided.
 
 def multivariate_data(dataset, target, start_index, end_index, history_size,
                       target_size, step, single_step=False):
@@ -76,9 +80,14 @@ def multivariate_data(dataset, target, start_index, end_index, history_size,
     return np.array(data), np.array(labels)
 
 
-past_history = 720
-future_target = 72
+# 1440 observations per day, I observe 5 days in the past
+past_history = 7200
+
+# make 1 observation every 10 minutes, 6 per hour
 step = 6
+
+# predict the Global_reactive_power 12 hr in the future
+future_target = 72
 
 x_train_single, y_train_single = multivariate_data(dataset,
                                                    dataset[:, 1],
@@ -100,17 +109,17 @@ x_val_single, y_val_single = multivariate_data(dataset,
 
 print('Single window of past history : {}'.format(x_train_single[0].shape))
 
-BATCH_SIZE = 5000
-BUFFER_SIZE = 100000
+batch_size = 5000
+buffer_size = 100000
 
 train_data_single = tf.data.Dataset.from_tensor_slices((x_train_single, y_train_single))
-train_data_single = train_data_single.take(BATCH_SIZE).shuffle(BUFFER_SIZE).batch(BATCH_SIZE).cache().repeat()
+train_data_single = train_data_single.take(batch_size).shuffle(buffer_size).batch(batch_size).cache().repeat()
 
 val_data_single = tf.data.Dataset.from_tensor_slices((x_val_single, y_val_single))
-val_data_single = val_data_single.take(BATCH_SIZE).batch(BATCH_SIZE).shuffle(BUFFER_SIZE).repeat()
+val_data_single = val_data_single.take(batch_size).batch(batch_size).shuffle(buffer_size).repeat()
 
 single_step_model = tf.keras.models.Sequential()
-single_step_model.add(tf.keras.layers.LSTM(8, input_shape=x_train_single.shape[-2:]))
+single_step_model.add(tf.keras.layers.LSTM(32, input_shape=x_train_single.shape[-2:]))
 single_step_model.add(tf.keras.layers.Dense(1))
 
 single_step_model.compile(optimizer=tf.keras.optimizers.RMSprop(), loss='mae')
@@ -154,24 +163,34 @@ for x, y in val_data_single.take(1):
     plot.show()
 
 # Multi Step Model
+# A multi-step model predicts a sequence of the future.
 
 future_target = 72
-x_train_multi, y_train_multi = multivariate_data(dataset, dataset[:, 1], 0,
-                                                 train_split, past_history,
-                                                 future_target, step)
 
-x_val_multi, y_val_multi = multivariate_data(dataset, dataset[:, 1],
-                                             train_split, None, past_history,
-                                             future_target, step)
+x_train_multi, y_train_multi = multivariate_data(dataset,
+                                                 dataset[:, 1],
+                                                 0,
+                                                 train_split,
+                                                 past_history,
+                                                 future_target,
+                                                 step)
+
+x_val_multi, y_val_multi = multivariate_data(dataset,
+                                             dataset[:, 1],
+                                             train_split,
+                                             None,
+                                             past_history,
+                                             future_target,
+                                             step)
 
 print('Single window of past history : {}'.format(x_train_multi[0].shape))
-print('\n Target temperature to predict : {}'.format(y_train_multi[0].shape))
+print('\n Target Global_Reactive_Power to predict : {}'.format(y_train_multi[0].shape))
 
 train_data_multi = tf.data.Dataset.from_tensor_slices((x_train_multi, y_train_multi))
-train_data_multi = train_data_multi.take(BATCH_SIZE).shuffle(BUFFER_SIZE).batch(BATCH_SIZE).cache().repeat()
+train_data_multi = train_data_multi.take(batch_size).shuffle(buffer_size).batch(batch_size).cache().repeat()
 
 val_data_multi = tf.data.Dataset.from_tensor_slices((x_val_multi, y_val_multi))
-val_data_multi = val_data_multi.take(BATCH_SIZE).batch(BATCH_SIZE).cache().repeat()
+val_data_multi = val_data_multi.take(batch_size).batch(batch_size).cache().repeat()
 
 
 def multi_step_plot(history, true_future, prediction):
@@ -199,6 +218,7 @@ multi_step_model.add(tf.keras.layers.Dense(72))
 
 multi_step_model.compile(optimizer=tf.keras.optimizers.RMSprop(clipvalue=1.0), loss='mae')
 
+# Let's see how the model predicts before it trains.
 for x, y in val_data_multi.take(1):
     print(multi_step_model.predict(x).shape)
 
