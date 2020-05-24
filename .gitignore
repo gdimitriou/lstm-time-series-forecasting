@@ -1,0 +1,5 @@
+.idea
+.DS_Store
+=1.13
+requirements.txt
+venv/
