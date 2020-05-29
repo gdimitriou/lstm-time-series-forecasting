@@ -106,7 +106,7 @@ x_val_single, y_val_single = multivariate_data(dataset,
 
 print('Single window of past history : {}'.format(x_train_single[0].shape))
 
-# Batch the data, put it into buffers, shuffle and cache them
+# Batch the data, put them into buffers, shuffle and cache them
 batch_size = 5000
 buffer_size = 100000
 

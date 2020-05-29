@@ -130,7 +130,7 @@ baseline_plot.show()
 batch_size = 5000
 buffer_size = 100000
 
-# Shuffle, batch, and cache the dataset
+# Batch the data, put them into buffers, shuffle and cache them
 train_univariate = tf.data.Dataset.from_tensor_slices((x_train_uni, y_train_uni))
 train_univariate = train_univariate.take(batch_size).shuffle(buffer_size).batch(batch_size).cache().repeat()
 
