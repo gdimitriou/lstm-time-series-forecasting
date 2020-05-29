@@ -16,15 +16,16 @@ csv_directory = "../household_power_consumption.csv";
 df = read_csv(csv_directory)
 
 # Extract the three variables
-features_considered = ['Global_active_power', 'Global_reactive_power', 'Sub_metering_2']
+features_considered = ['Global_active_power', 'Global_reactive_power', 'Voltage']
 features = df[features_considered]
 features.index = df['datetime']
 
 print(features.head())
 
+# First 1500000 lines for training, rest 507259  for validation
 train_split = 1500000
 
-# Normilice the data
+# Normalize the data
 dataset = features.values
 tf.keras.utils.normalize(dataset)
 
@@ -80,13 +81,9 @@ def multivariate_data(dataset, target, start_index, end_index, history_size,
     return np.array(data), np.array(labels)
 
 
-# 1440 observations per day, I observe 5 days in the past
-past_history = 7200
-
-# make 1 observation every 10 minutes, 6 per hour
+# Observe 5 days in the past, predict Global_reactive_power 12 hr in the future
+past_history = 720
 step = 6
-
-# predict the Global_reactive_power 12 hr in the future
 future_target = 72
 
 x_train_single, y_train_single = multivariate_data(dataset,
@@ -109,6 +106,7 @@ x_val_single, y_val_single = multivariate_data(dataset,
 
 print('Single window of past history : {}'.format(x_train_single[0].shape))
 
+# Batch the data, put it into buffers, shuffle and cache them
 batch_size = 5000
 buffer_size = 100000
 
@@ -118,18 +116,21 @@ train_data_single = train_data_single.take(batch_size).shuffle(buffer_size).batc
 val_data_single = tf.data.Dataset.from_tensor_slices((x_val_single, y_val_single))
 val_data_single = val_data_single.take(batch_size).batch(batch_size).shuffle(buffer_size).repeat()
 
+# LSTM Model Creation
 single_step_model = tf.keras.models.Sequential()
 single_step_model.add(tf.keras.layers.LSTM(32, input_shape=x_train_single.shape[-2:]))
 single_step_model.add(tf.keras.layers.Dense(1))
 
+# Compile the model
 single_step_model.compile(optimizer=tf.keras.optimizers.RMSprop(), loss='mae')
 
-for x, y in val_data_single.take(1):
+for x, y in val_data_single.take(3):
     print(single_step_model.predict(x).shape)
 
 epochs = 10
 steps_per_epoch = 200
 
+# Train the model
 single_step_history = single_step_model.fit(train_data_single,
                                             epochs=epochs,
                                             steps_per_epoch=steps_per_epoch,
@@ -156,7 +157,7 @@ def plot_train_history(history, title):
 plot_train_history(single_step_history,
                    'Single Step Training and validation loss')
 
-for x, y in val_data_single.take(1):
+for x, y in val_data_single.take(3):
     plot = show_plot([x[0][:, 1].numpy(), y[0].numpy(),
                       single_step_model.predict(x)[0]], 12,
                      'Single Step Prediction')
@@ -186,6 +187,7 @@ x_val_multi, y_val_multi = multivariate_data(dataset,
 print('Single window of past history : {}'.format(x_train_multi[0].shape))
 print('\n Target Global_Reactive_Power to predict : {}'.format(y_train_multi[0].shape))
 
+# Batch the data, put it into buffers, shuffle and cache them
 train_data_multi = tf.data.Dataset.from_tensor_slices((x_train_multi, y_train_multi))
 train_data_multi = train_data_multi.take(batch_size).shuffle(buffer_size).batch(batch_size).cache().repeat()
 
@@ -208,20 +210,23 @@ def multi_step_plot(history, true_future, prediction):
     plt.show()
 
 
-for x, y in train_data_multi.take(1):
+for x, y in train_data_multi.take(3):
     multi_step_plot(x[0], y[0], np.array([0]))
 
+# LSTM Model creation
 multi_step_model = tf.keras.models.Sequential()
 multi_step_model.add(tf.keras.layers.LSTM(32, return_sequences=True, input_shape=x_train_multi.shape[-2:]))
 multi_step_model.add(tf.keras.layers.LSTM(16, activation='relu'))
 multi_step_model.add(tf.keras.layers.Dense(72))
 
+# Compile the model
 multi_step_model.compile(optimizer=tf.keras.optimizers.RMSprop(clipvalue=1.0), loss='mae')
 
 # Let's see how the model predicts before it trains.
 for x, y in val_data_multi.take(1):
     print(multi_step_model.predict(x).shape)
 
+# Train the model
 multi_step_history = multi_step_model.fit(train_data_multi,
                                           epochs=epochs,
                                           steps_per_epoch=steps_per_epoch,

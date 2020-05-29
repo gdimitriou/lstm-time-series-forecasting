@@ -23,9 +23,7 @@ print("======== Dataset Head ========")
 print(dataset.head())
 
 
-# This function returns two windows:
-# 1.
-# 2.
+# This function returns past and future windows
 def univariate_data(dataset, start_index, end_index, history_size, target_size):
     data = []
     labels = []
@@ -163,7 +161,7 @@ trained_lstm = lstm_model.fit(
     validation_steps=50)
 
 # Plot LSMT Model's 3 predictions
-for x, y in val_univariate.take(1):
+for x, y in val_univariate.take(3):
     plot = show_plot([x[0].numpy(), y[0].numpy(),
                       lstm_model.predict(x)[0]], 0, 'LSTM model')
     plot.show()
