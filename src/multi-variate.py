@@ -82,9 +82,9 @@ def multivariate_data(dataset, target, start_index, end_index, history_size,
 
 
 # Observe 5 days in the past, predict Global_reactive_power 12 hr in the future
-past_history = 720
-step = 6
-future_target = 72
+past_history = 1440*4
+step = 30
+future_target = 420
 
 x_train_single, y_train_single = multivariate_data(dataset,
                                                    dataset[:, 1],
@@ -107,8 +107,8 @@ x_val_single, y_val_single = multivariate_data(dataset,
 print('Single window of past history : {}'.format(x_train_single[0].shape))
 
 # Batch the data, put them into buffers, shuffle and cache them
-batch_size = 5000
-buffer_size = 100000
+batch_size = 512
+buffer_size = 10240
 
 train_data_single = tf.data.Dataset.from_tensor_slices((x_train_single, y_train_single))
 train_data_single = train_data_single.take(batch_size).shuffle(buffer_size).batch(batch_size).cache().repeat()
@@ -118,11 +118,12 @@ val_data_single = val_data_single.take(batch_size).batch(batch_size).shuffle(buf
 
 # LSTM Model Creation
 single_step_model = tf.keras.models.Sequential()
-single_step_model.add(tf.keras.layers.LSTM(32, input_shape=x_train_single.shape[-2:]))
+single_step_model.add(tf.keras.layers.LSTM(8, input_shape=x_train_single.shape[-2:]))
 single_step_model.add(tf.keras.layers.Dense(1))
 
+
 # Compile the model
-single_step_model.compile(optimizer=tf.keras.optimizers.RMSprop(), loss='mae')
+single_step_model.compile(optimizer='adam', loss='mae')
 
 for x, y in val_data_single.take(3):
     print(single_step_model.predict(x).shape)
@@ -166,7 +167,7 @@ for x, y in val_data_single.take(3):
 # Multi Step Model
 # A multi-step model predicts a sequence of the future.
 
-future_target = 72
+future_target = 420
 
 x_train_multi, y_train_multi = multivariate_data(dataset,
                                                  dataset[:, 1],
@@ -217,10 +218,10 @@ for x, y in train_data_multi.take(3):
 multi_step_model = tf.keras.models.Sequential()
 multi_step_model.add(tf.keras.layers.LSTM(32, return_sequences=True, input_shape=x_train_multi.shape[-2:]))
 multi_step_model.add(tf.keras.layers.LSTM(16, activation='relu'))
-multi_step_model.add(tf.keras.layers.Dense(72))
+multi_step_model.add(tf.keras.layers.Dense(420))
 
 # Compile the model
-multi_step_model.compile(optimizer=tf.keras.optimizers.RMSprop(clipvalue=1.0), loss='mae')
+multi_step_model.compile(optimizer='adam', loss='mae')
 
 # Let's see how the model predicts before it trains.
 for x, y in val_data_multi.take(1):
