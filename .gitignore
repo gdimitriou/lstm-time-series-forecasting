@@ -3,3 +3,4 @@
 =1.13
 requirements.txt
 venv/
+household_power_consumption.csv
