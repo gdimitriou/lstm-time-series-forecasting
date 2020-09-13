@@ -21,7 +21,7 @@ Instructions to run the program:
     1. Clone the project from: https://github.com/gdimitriou/lstm-time-series-forecasting.git
     2. Import it to your favorite IDE
     3. Download the dependencies
-    4. Download the dataset from: 
+    4. Download the dataset from: https://www.kaggle.com/uciml/electric-power-consumption-data-set
     5. Rename the dataset as household_power_consumption.csv
     6. Import it under project's parent directory
     7. Run uni-variate.py or multy-variate.py
